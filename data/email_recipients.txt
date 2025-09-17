@@ -1,0 +1,2 @@
+Менеджер:manager@example.com
+Бухгалтер:accountant@example.com

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления - Message Service</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            min-height: 100vh;
+            position: fixed;
+            padding-top: 20px;
+            width: 250px;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .nav-link {
+            color: #bdc3c7 !important;
+            padding: 12px 20px;
+            margin: 4px 0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: #3498db;
+            color: white !important;
+            transform: translateX(5px);
+        }
+        .nav-link i {
+            width: 20px;
+            margin-right: 12px;
+            font-size: 1.1em;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        .card-header {
+            border-radius: 12px 12px 0 0 !important;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        .recipients-group {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            margin-top: 10px;
+        }
+        #message {
+            font-family: 'Courier New', monospace;
+            min-height: 150px;
+            border-radius: 8px;
+            resize: vertical;
+        }
+        .select-all-btn {
+            margin-bottom: 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+        }
+        .recipient-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .recipient-item:last-child {
+            border-bottom: none;
+        }
+        .recipient-count {
+            background-color: #007bff;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .current-recipients {
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+        }
+        .recipient-line {
+            padding: 4px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #495057;
+        }
+        .template-hint {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left: 4px solid #2196f3;
+            padding: 10px 15px;
+            margin-top: 8px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #1565c0;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        .btn {
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        .channel-badge {
+            font-size: 0.75em;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+        .stats-card {
+            text-align: center;
+            padding: 20px;
+        }
+        .stats-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stats-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="text-center mb-4">
+                <div class="mb-3">
+                    <i class="fas fa-comments fa-3x text-primary"></i>
+                </div>
+                <h5 class="mb-1">Message Service</h5>
+                <small class="text-muted">Управление сообщениями</small>
+            </div>
+
+            <div class="mb-4 p-3" style="background: rgba(255,255,255,0.1); border-radius: 10px;">
+                <small class="text-muted d-block">Вошли как</small>
+                <strong class="text-white" th:text="${username}"></strong>
+            </div>
+
+            <hr style="border-color: rgba(255,255,255,0.2)">
+
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#">
+                        <i class="fas fa-home"></i>Главная
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#send-section">
+                        <i class="fas fa-paper-plane"></i>Отправить
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#manage-section">
+                        <i class="fas fa-cog"></i>Управление
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/users/manage">
+                        <i class="fas fa-users"></i>Пользователи
+                    </a>
+                </li>
+                <li class="nav-item mt-3">
+                    <a class="nav-link" href="/logout">
+                        <i class="fas fa-sign-out-alt"></i>Выйти
+                    </a>
+                </li>
+            </ul>
+
+            <div class="mt-auto p-3 text-center">
+                <small class="text-muted">Version 1.0</small>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Панель управления</h2>
+                    <p class="text-muted mb-0">Управление сообщениями и получателями</p>
+                </div>
+                <span class="badge bg-primary bg-gradient px-3 py-2">
+                        <i class="fas fa-user me-1"></i>
+                        <span th:text="${username}"></span>
+                    </span>
+            </div>
+
+            <!-- Flash Messages -->
+            <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle me-2 fa-lg"></i>
+                    <span th:text="${success}"></span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-circle me-2 fa-lg"></i>
+                    <span th:text="${error}"></span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card stats-card">
+                        <div class="stats-number" th:text="${telegramRecipients.size()}">0</div>
+                        <div class="stats-label">Telegram каналов</div>
+                        <i class="fas fa-paper-plane mt-2 text-primary fa-2x"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stats-card">
+                        <div class="stats-number" th:text="${emailRecipients.size()}">0</div>
+                        <div class="stats-label">Email адресов</div>
+                        <i class="fas fa-envelope mt-2 text-danger fa-2x"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stats-card">
+                        <div class="stats-number" th:text="${smsRecipients.size()}">0</div>
+                        <div class="stats-label">SMS номеров</div>
+                        <i class="fas fa-sms mt-2 text-success fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Send Message Form -->
+                <div class="col-lg-8">
+                    <div class="card" id="send-section">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-paper-plane me-2"></i>Отправить сообщение</h5>
+                            <small>Выберите один или несколько получателей</small>
+                        </div>
+                        <div class="card-body">
+                            <form id="sendForm" th:action="@{/send}" method="post">
+                                <!-- Channel Selection -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Канал отправки</label>
+                                    <div class="d-flex gap-3 flex-wrap">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="channel" id="telegram" value="telegram" checked>
+                                            <label class="form-check-label" for="telegram">
+                                                <i class="fab fa-telegram text-primary me-1"></i>Telegram
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="channel" id="email" value="email">
+                                            <label class="form-check-label" for="email">
+                                                <i class="fas fa-envelope text-danger me-1"></i>Email
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="channel" id="sms" value="sms">
+                                            <label class="form-check-label" for="sms">
+                                                <i class="fas fa-sms text-success me-1"></i>SMS
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Recipients -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold d-flex align-items-center">
+                                        Получатели
+                                        <span id="selectedCount" class="recipient-count ms-2">0 выбрано</span>
+                                    </label>
+
+                                    <!-- Telegram Recipients -->
+                                    <div id="telegramRecipients" class="recipients-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary select-all-btn" data-channel="telegram">
+                                            <i class="fas fa-check-square me-1"></i>Выбрать все
+                                        </button>
+                                        <div th:each="recipient : ${telegramRecipients}" class="recipient-item">
+                                            <input class="form-check-input" type="checkbox" name="recipients"
+                                                   th:value="${recipient[1]}" th:id="${'tg-' + recipientStat.index}">
+                                            <label class="form-check-label ms-2" th:for="${'tg-' + recipientStat.index}">
+                                                <span th:text="${recipient[0]}"></span>
+                                                <small class="text-muted ms-1">(<span th:text="${recipient[1]}"></span>)</small>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Email Recipients -->
+                                    <div id="emailRecipients" class="recipients-group d-none">
+                                        <button type="button" class="btn btn-sm btn-outline-primary select-all-btn" data-channel="email">
+                                            <i class="fas fa-check-square me-1"></i>Выбрать все
+                                        </button>
+                                        <div th:each="recipient : ${emailRecipients}" class="recipient-item">
+                                            <input class="form-check-input" type="checkbox" name="recipients"
+                                                   th:value="${recipient[1]}" th:id="${'email-' + recipientStat.index}">
+                                            <label class="form-check-label ms-2" th:for="${'email-' + recipientStat.index}">
+                                                <span th:text="${recipient[0]}"></span>
+                                                <small class="text-muted ms-1">(<span th:text="${recipient[1]}"></span>)</small>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- SMS Recipients -->
+                                    <div id="smsRecipients" class="recipients-group d-none">
+                                        <button type="button" class="btn btn-sm btn-outline-primary select-all-btn" data-channel="sms">
+                                            <i class="fas fa-check-square me-1"></i>Выбрать все
+                                        </button>
+                                        <div th:each="recipient : ${smsRecipients}" class="recipient-item">
+                                            <input class="form-check-input" type="checkbox" name="recipients"
+                                                   th:value="${recipient[1]}" th:id="${'sms-' + recipientStat.index}">
+                                            <label class="form-check-label ms-2" th:for="${'sms-' + recipientStat.index}">
+                                                <span th:text="${recipient[0]}"></span>
+                                                <small class="text-muted ms-1">(<span th:text="${recipient[1]}"></span>)</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Template Selection -->
+                                <div class="mb-4">
+                                    <label for="template" class="form-label fw-bold">
+                                        <i class="fas fa-paint-brush me-2"></i>Шаблон сообщения
+                                    </label>
+                                    <select class="form-select" id="template" name="template">
+                                        <option th:each="template : ${templates}" th:value="${template}" th:text="${template}"></option>
+                                    </select>
+                                    <div class="template-hint">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Шаблон будет автоматически применен к сообщению
+                                    </div>
+                                </div>
+
+                                <!-- Message Content -->
+                                <div class="mb-4">
+                                    <label for="message" class="form-label fw-bold">
+                                        <i class="fas fa-comment me-2"></i>Текст сообщения
+                                    </label>
+                                    <textarea class="form-control" id="message" name="message" rows="8"
+                                              placeholder="Введите текст сообщения..." required></textarea>
+                                    <div class="form-text">
+                                        <i class="fas fa-lightbulb me-1"></i>
+                                        Текст будет автоматически вставлен в выбранный шаблон
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-success w-100 py-3 fw-bold">
+                                    <i class="fas fa-paper-plane me-2"></i>Отправить сообщение
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Management Forms -->
+                <div class="col-lg-4">
+                    <div id="manage-section">
+                        <!-- Template Management -->
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Управление шаблонами</h6>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/save-template}" method="post">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Выберите шаблон</label>
+                                        <select class="form-select form-select-sm" id="templateSelect" onchange="loadTemplateContent()">
+                                            <option value="">-- Выберите для редактирования --</option>
+                                            <option th:each="template : ${templates}" th:value="${template}" th:text="${template}"></option>
+                                            <option value="new">+ Создать новый шаблон</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Название шаблона</label>
+                                        <input type="text" class="form-control form-control-sm" id="templateName" name="template_name" required
+                                               placeholder="Введите название шаблона">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Содержимое шаблона</label>
+                                        <textarea class="form-control form-control-sm" id="templateContent" name="template_content" rows="5" required
+                                                  placeholder="Текст шаблона..."></textarea>
+                                        <div class="form-text small">
+                                            <i class="fas fa-code me-1"></i>
+                                            Используйте <code>{content}</code> для вставки сообщения
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-info w-100">
+                                        <i class="fas fa-save me-1"></i>Сохранить шаблон
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Recipients Management -->
+                        <div class="card mt-4">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="fas fa-users me-2"></i>Управление получателями</h6>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/save-recipients}" method="post">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Тип получателей</label>
+                                        <select class="form-select form-select-sm" id="recipientType" name="channel" onchange="loadCurrentRecipients()">
+                                            <option value="telegram">Telegram каналы</option>
+                                            <option value="email">Email адреса</option>
+                                            <option value="sms">SMS номера</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Текущие получатели</label>
+                                        <div id="currentRecipients" class="current-recipients">
+                                            <div class="text-center text-muted py-3">
+                                                <i class="fas fa-spinner fa-spin"></i> Загрузка...
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Список получателей</label>
+                                        <textarea class="form-control form-control-sm" id="recipientsText" name="recipients" rows="4" required
+                                                  placeholder="Формат: Имя:Значение&#10;Пример: Рабочая группа:-1001234567890"></textarea>
+                                        <div class="form-text small">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            По одному на строку, формат: Имя:Значение
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-warning w-100">
+                                        <i class="fas fa-save me-1"></i>Сохранить получателей
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const templates = /*[[${templateContents}]]*/ {};
+    const telegramRecipientsRaw = /*[[${telegramRecipients}]]*/ [];
+    const emailRecipientsRaw = /*[[${emailRecipients}]]*/ [];
+    const smsRecipientsRaw = /*[[${smsRecipients}]]*/ [];
+    /*]]>*/
+
+    // Helper: convert raw server arrays to "Name:Value\n..." string
+    function formatRecipients(raw) {
+        if (!raw) return '';
+        // If raw is array of arrays: [[name, value], ...]
+        if (Array.isArray(raw) && raw.length > 0 && Array.isArray(raw[0])) {
+            return raw.map(r => (r[0] ?? '') + ':' + (r[1] ?? '')).join('\n');
+        }
+        // If raw is simple array of strings
+        if (Array.isArray(raw)) {
+            return raw.join('\n');
+        }
+        return String(raw);
+    }
+
+    // Build currentRecipients strings
+    const currentRecipients = {
+        telegram: formatRecipients(telegramRecipientsRaw),
+        email: formatRecipients(emailRecipientsRaw),
+        sms: formatRecipients(smsRecipientsRaw)
+    };
+
+    // Count selected recipients and update UI
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('input[name="recipients"]:checked');
+        const selectedCount = document.getElementById('selectedCount');
+        if (selectedCount) {
+            selectedCount.textContent = checkboxes.length + ' выбрано';
+            selectedCount.style.backgroundColor = checkboxes.length > 0 ? '#28a745' : '#007bff';
+        }
+    }
+
+    // Global selectAll function (used by buttons or programmatically)
+    window.selectAll = function(channel) {
+        const group = document.getElementById(channel + 'Recipients');
+        if (!group) return;
+        const checkboxes = group.querySelectorAll('input[name="recipients"]');
+        const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        checkboxes.forEach(checkbox => { checkbox.checked = !allChecked; });
+        updateSelectedCount();
+    };
+
+    // Load current recipients into the UI (as lines)
+    function loadCurrentRecipients() {
+        const typeElem = document.getElementById('recipientType');
+        const type = typeElem ? typeElem.value : 'telegram';
+        const currentRecipientsDiv = document.getElementById('currentRecipients');
+        const recipientsText = document.getElementById('recipientsText');
+
+        const rawString = currentRecipients[type] || '';
+        if (rawString.trim()) {
+            currentRecipientsDiv.innerHTML = '';
+            const lines = rawString.split('\n');
+            lines.forEach(line => {
+                if (line.trim()) {
+                    const div = document.createElement('div');
+                    div.className = 'recipient-line';
+                    div.innerHTML = `<i class="fas fa-user me-2 text-muted"></i>${line}`;
+                    currentRecipientsDiv.appendChild(div);
+                }
+            });
+            recipientsText.value = rawString.trim();
+        } else {
+            currentRecipientsDiv.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-users me-1"></i>Нет получателей</div>';
+            recipientsText.value = '';
+        }
+    }
+
+    // Load template edit panel content
+    function loadTemplateContent() {
+        const templateSelect = document.getElementById('templateSelect');
+        const templateName = document.getElementById('templateName');
+        const templateContent = document.getElementById('templateContent');
+
+        if (!templateSelect) return;
+        if (templateSelect.value === 'new') {
+            templateName.value = '';
+            templateContent.value = '';
+            templateName.removeAttribute('readonly');
+            templateName.focus();
+        } else if (templateSelect.value) {
+            templateName.value = templateSelect.value;
+            templateContent.value = templates[templateSelect.value] || '';
+            templateName.setAttribute('readonly', 'readonly');
+        }
+    }
+
+    // Load selected template into message textarea
+    function loadTemplateToMessage() {
+        const templateSelect = document.getElementById('template');
+        const messageTextarea = document.getElementById('message');
+        if (!templateSelect || !messageTextarea) return;
+        messageTextarea.value = templates[templateSelect.value] || '';
+    }
+
+    // Attach click handlers for .select-all-btn elements (if any use data-channel attr)
+    document.querySelectorAll('.select-all-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const channel = this.getAttribute('data-channel') || this.dataset.channel;
+            if (!channel) return;
+            window.selectAll(channel);
+        });
+    });
+
+    // Visibility for recipient groups
+    function updateRecipientsVisibility() {
+        const sel = document.querySelector('input[name="channel"]:checked');
+        const selectedChannel = sel ? sel.value : 'telegram';
+        const recipientsGroups = {
+            telegram: document.getElementById('telegramRecipients'),
+            email: document.getElementById('emailRecipients'),
+            sms: document.getElementById('smsRecipients')
+        };
+        Object.values(recipientsGroups).forEach(group => { if (group) group.classList.add('d-none'); });
+        if (recipientsGroups[selectedChannel]) recipientsGroups[selectedChannel].classList.remove('d-none');
+
+        // Clear checkboxes
+        document.querySelectorAll('input[name="recipients"]').forEach(checkbox => { checkbox.checked = false; });
+        updateSelectedCount();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const channelRadios = document.querySelectorAll('input[name="channel"]');
+        const templateSelect = document.getElementById('template');
+
+        // Initial setup
+        if (channelRadios.length > 0) updateRecipientsVisibility();
+        updateSelectedCount();
+        loadCurrentRecipients();
+        loadTemplateContent();
+        loadTemplateToMessage();
+
+        // Listeners
+        channelRadios.forEach(radio => radio.addEventListener('change', updateRecipientsVisibility));
+        if (templateSelect) templateSelect.addEventListener('change', loadTemplateToMessage);
+
+        // Bind templateSelect edit and recipientType selects if exist
+        const templateSelectEdit = document.getElementById('templateSelect');
+        if (templateSelectEdit) templateSelectEdit.addEventListener('change', loadTemplateContent);
+        const recipientTypeSelect = document.getElementById('recipientType');
+        if (recipientTypeSelect) recipientTypeSelect.addEventListener('change', loadCurrentRecipients);
+
+        // Checkbox changes
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.name === 'recipients') updateSelectedCount();
+        });
+
+        // Form submit handler
+        const sendForm = document.getElementById('sendForm');
+        const messageInput = document.getElementById('message');
+        if (sendForm) {
+            sendForm.addEventListener('submit', function(e) {
+                const recipients = document.querySelectorAll('input[name="recipients"]:checked');
+                if (recipients.length === 0) {
+                    e.preventDefault();
+                    alert('Пожалуйста, выберите хотя бы одного получателя');
+                    return false;
+                }
+                if (messageInput && !messageInput.value.trim()) {
+                    e.preventDefault();
+                    alert('Пожалуйста, введите сообщение');
+                    return false;
+                }
+
+                // Show loading animation on submit button
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Отправка...';
+                    submitBtn.disabled = true;
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 3000);
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>
