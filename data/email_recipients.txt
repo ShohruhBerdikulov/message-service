@@ -1,2 +1,5 @@
 Менеджер:manager@example.com
-Бухгалтер:accountant@example.com
+ITMON:it-monitoring@paynet.uz
+Dilshod:dilshod.avezov@paynet.uz
+Jama:jamshidbek.mamarasulov@paynet.uz
+monit:umid.ruzmetov@paynet.uz

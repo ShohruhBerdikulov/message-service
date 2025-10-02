@@ -103,7 +103,6 @@ public class FileService {
     }
 
     public void createDefaultFiles() {
-        // Create default users file if not exists
         List<String[]> users = loadRecipients("users.txt");
         if (users.isEmpty()) {
             String hashedPassword = org.springframework.security.crypto.bcrypt.BCrypt.hashpw("admin123",
@@ -113,14 +112,12 @@ public class FileService {
             saveRecipients("users.txt", defaultUsers);
         }
 
-        // Create default templates if not exists
         if (getTemplateNames().isEmpty()) {
             saveTemplate("default", "Сообщение: {content}");
             saveTemplate("urgent", "СРОЧНО: {content}");
             saveTemplate("info", "Информация: {content}");
         }
 
-        // Create default recipients files if not exists
         if (loadRecipients("telegram_recipients.txt").isEmpty()) {
             List<String[]> telegramRecipients = new ArrayList<>();
             telegramRecipients.add(new String[]{"Рабочая группа", "-1001234567890"});

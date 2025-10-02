@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpSession;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,9 +66,7 @@ public class MessageController {
     }
 
     @PostMapping("/send")
-    public String sendMessage(@RequestParam String channel,
-                              @RequestParam List<String> recipients, // Endi List<String> qabul qilamiz
-                              @RequestParam String template,
+    public String sendMessage(@RequestParam List<String> recipients,
                               @RequestParam String message,
                               HttpSession session,
                               RedirectAttributes redirectAttributes) {
@@ -86,30 +85,24 @@ public class MessageController {
             return "redirect:/dashboard";
         }
 
-        String fullMessage = fileService.loadTemplate(template).replace("{content}", message);
         int successCount = 0;
         int totalCount = recipients.size();
+        StringBuilder notSend= new StringBuilder();
 
         for (String recipient : recipients) {
-            boolean success = false;
-
-            switch (channel) {
-                case "telegram":
-                    success = messageService.sendTelegramMessage(recipient, fullMessage, username);
-                    break;
-                case "email":
-                    success = messageService.sendEmail(recipient, "Сообщение от сервиса", fullMessage, username);
-                    break;
-                case "sms":
-                    success = messageService.sendSms(recipient, fullMessage, username);
-                    break;
+            boolean success;
+            if (recipient.contains("@")) {
+                success = messageService.sendEmail(recipient, "Сообщение от сервиса", message, username);
+            } else {
+                success = messageService.sendTelegramMessage(recipient, message, username);
             }
 
             if (success) {
                 successCount++;
+            }else {
+                notSend.append(recipient).append(", ");
             }
 
-            // Kichik kechikish (agar kerak bo'lsa)
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -119,7 +112,7 @@ public class MessageController {
 
         if (successCount > 0) {
             redirectAttributes.addFlashAttribute("success",
-                    "Сообщения отправлены! Успешно: " + successCount + " из " + totalCount);
+                    "Сообщения отправлены! Успешно: " + successCount + " из " + totalCount + ";\nНе удалось отправить сообщения: " + notSend);
         } else {
             redirectAttributes.addFlashAttribute("error",
                     "Не удалось отправить сообщения ни одному получателю");
@@ -157,14 +150,12 @@ public class MessageController {
         model.addAttribute("username", session.getAttribute("username"));
         model.addAttribute("templates", fileService.getTemplateNames());
 
-        // Shablonlarning to'liq matnini ham qo'shamiz
         Map<String, String> templateContents = new HashMap<>();
         for (String templateName : fileService.getTemplateNames()) {
             templateContents.put(templateName, fileService.loadTemplate(templateName));
         }
         model.addAttribute("templateContents", templateContents);
 
-        // Recipientlarni ham qo'shamiz
         model.addAttribute("telegramRecipients", fileService.loadRecipients("telegram_recipients.txt"));
         model.addAttribute("emailRecipients", fileService.loadRecipients("email_recipients.txt"));
         model.addAttribute("smsRecipients", fileService.loadRecipients("sms_recipients.txt"));
@@ -208,7 +199,7 @@ public class MessageController {
 
         for (String line : lines) {
             line = line.trim();
-            if (!line.isEmpty() && line.contains(":")) {
+            if (line.contains(":")) {
                 String[] parts = line.split(":", 2);
                 if (parts.length == 2) {
                     result.add(new String[]{parts[0].trim(), parts[1].trim()});

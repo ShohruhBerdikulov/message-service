@@ -38,7 +38,6 @@ public class UserController {
             return "redirect:/login";
         }
 
-        // Validation
         if (!password.equals(confirmPassword)) {
             redirectAttributes.addFlashAttribute("error", "Пароли не совпадают");
             return "redirect:/users/manage";
@@ -49,7 +48,6 @@ public class UserController {
             return "redirect:/users/manage";
         }
 
-        // Create user
         boolean success = authService.createUser(username, password);
 
         if (success) {
@@ -70,7 +68,6 @@ public class UserController {
             return "redirect:/login";
         }
 
-        // Prevent deleting current user
         String currentUser = (String) session.getAttribute("username");
         if (currentUser.equals(username)) {
             redirectAttributes.addFlashAttribute("error", "Нельзя удалить текущего пользователя");

@@ -22,20 +22,16 @@ public class LogService {
                            String username, String status) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-        // Qisqa log format
         String shortLogEntry = String.format("[%s] %s -> %s: %s - %s",
                 timestamp, username, channel, recipient, status);
 
-        // To'liq log format (JSON)
         String fullLogEntry = String.format("{\"timestamp\": \"%s\", \"user\": \"%s\", " +
                         "\"channel\": \"%s\", \"recipient\": \"%s\", \"message\": \"%s\", \"status\": \"%s\"}",
                 timestamp, username, channel, recipient,
                 message.replace("\"", "\\\"").replace("\n", " "), status);
 
-        // Konsolga chiqarish
         System.out.println(shortLogEntry);
 
-        // Filega yozish
         fileService.appendToFile("logs.txt", fullLogEntry);
     }
 
